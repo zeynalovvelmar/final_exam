@@ -1,0 +1,267 @@
+
+Ad Soyad: ___________________________
+
+
+=== LINUX & SHELL ===
+
+Sual 1
+Cron job her gece 00:00-da isleyir - amma log fayli boshdur. Eyni skripti
+terminaldan isletdikde mukemmel isleyir. En ehtimalli 3 sebabi yaz ve
+her birini nece yoxlayacagini izah et.
+
+Cavab:
+1. Cron skriptin yerini tapmir, terminalda istediyim qovluga kecid ede bilirem, ozum yoxluya bilirem
+Helli : cron kodunun daxilinde faylin tam adi yazilmalidir
+
+2. error-u loga yazmir
+helli: cron faylina 2>&1 yaziriq ki, errorlari loq faylina qeyd etsin
+
+
+
+
+=== DOCKER ===
+
+Sual 2
+"docker run -p 5432:5432 postgres" isletdin, konteyner "Up" gosterir,
+amma "psql -h localhost -p 5432" ile qoshula bilmirsen.
+Hansi 3 sheyi yoxlayarsan? Her birini niye yoxladigini esaslandir.
+
+Cavab:
+1. postgres-e qosulmaq ucun mutleq password lazimdir
+"docker logs" ile sifre teleb olunub olunmadigini yoxlaya bilerik
+
+2. 5432 portu ola bilsin ki, basqa postgres konteyner terefinden istifade olunsun
+
+3. username yalnis ola biler, emrde mutleq deqiq username qeyd edib yeniden yoxlayiriq
+
+
+=== APACHE AIRFLOW ===
+
+Sual 3
+DAG bele konfiqurasiya edilib:
+
+    start_date = datetime(2024, 1, 1)
+    schedule = '@daily'
+
+Sen bu DAG-i bu gun ilk defe aktivleshdiririsen (3 ay sonra).
+Ne bash vereckek? Bu davanishi istemirsen ne etmelisin?
+
+Cavab:
+
+Airflow kecmisden bu gune qeder olan texminen 90 dene eyni jobu run edecek.
+Helli: catchup:False
+
+
+----------
+
+Sual 4
+Airflow UI-da gorursen:
+  - Task A  ->  SUCCESS
+  - Task B  ->  RUNNING
+  - Task C  ->  UPSTREAM_FAILED
+
+Amma Task B hele bitmeyib. Task C nece "upstream_failed" veziyyetine dushdu?
+Airflow-un ish prinsipinden baxaraq izah et.
+
+Cavab:
+
+Task-c nin ise dusmesi ucun hem task-A hemde task-B bitmelidir, yeqin ki task-C basqa bir taskdan asilidir
+ve task-C buna gore fail olub
+
+----------
+
+Sual 5
+Her gun ishledeceyinin Python skripti cox RAM istehlak edir ve diger
+task-lari yavaslhadir. PythonOperator istifade edirsek. Daha yaxshi
+alternativ nedir? Niye? Bu secim infrastruktura nece tesir edir?
+
+Cavab:
+
+KubernetesPodOperator istifade etmek olar
+
+
+=== APACHE SPARK ===
+
+Sual 6
+Bu kodu yazirsan:
+
+    df  = spark.read.csv("s3://bucket/data.csv")
+    df2 = df.filter(df.age > 18)
+    df3 = df2.select("name", "age")
+    print(df3)
+
+Xeta yoxdur, amma data da gorunmur. Niye? Bunu duzeltmek ucun ne elave
+etmelisen? Spark-in bu davanishinin faydasi nedir?
+
+Cavab:
+
+cunki action emri yoxdur, .show istifade etmeli idik
+spark datani bir basa emal etmir, en optimal yolu tapir ve action cagirildiqda ise dusur
+
+----------
+
+Sual 7
+200 executor-lu Spark cluster-in var, amma job hele de cox yavashtir.
+Log-lara baxirsan:
+
+    spark.default.parallelism = 1
+
+Bu ne demekdir? Duzgun deyeri nece hesablarsan? Formula yaz.
+
+Cavab:
+
+butun emeliyyatlar 1 partition daxilinde yerine yetirilir
+
+----------
+
+Sual 8
+groupBy().agg() emeliyyati zamani bezi worker-ler coxdan bitib gozleyir,
+bezileri ise hele isleyir. Bu problemin adi nedir? Niye bash verir?
+Spark-da 2 hell yolu yaz.
+
+Cavab:
+
+data skew bas verir. Bunu salting texnikasi ile aradan qaldira bilerik, data qruplarina random 
+reqemler verilir ve workerlar arasinda paylanir
+
+----------
+
+Sual 9
+Spark job crash etdi - Driver node-un yaddashi doldu. Komandan deyir:
+"Driver-e daha cox RAM ver, problem hell olur."
+
+Sen bunun kok problem olmadigini dushunursen. Niye?
+Dogru diaqnoz ve hell ne ola biler?
+
+Cavab:
+
+driver datani emal etmir, sadece isi idare edir, rami artirmaq problemi muveqqeti aradan qaldiracaq.
+bunun yerine .collect() - istifadesinden qacmaq lazimdir
+ve ya ola bilerki boyuk joinlerden istifade olunur
+
+
+=== APACHE KAFKA ===
+
+Sual 10
+Topic-in 3 partition-u var. Consumer Group-da 5 consumer var.
+  - Her consumer nece partition-dan oxuyacaq?
+  - 2 consumer ne edecek?
+  - Diaqram chekerck izah et.
+
+Cavab:
+
+her consumer 1 aktiv partition-dan oxuya biler, diger 2-si bos veziyyetde qalacaq. eger her hansi consumer cokse
+bosda olan consumerlerdan biri onun yerine kecir
+
+partition 0  ---> consumer 1
+partition 1  ---> consumer 2
+partition 2  ---> consumer 3
+                  consumer 4 (bos)
+                  consumer 5 (bos)
+
+----------
+
+Sual 11
+Yeni bir Consumer Group topic-e qoshuldu. auto.offset.reset = "earliest"
+qurulub. Bu consumer butun kohne mesajlari oxuyacaqmi?
+Retention policy-nin bu movzuda rolu nedir? "latest" ile ferqi nedir?
+
+Cavab:
+
+earliest oldugu ucun qosulan yeni consumer qrupu mesajlari basdan oxuyacaq,
+retention policy kafkada olan mesajlarin silinme muddetidir, eger mesajlar silinibse artiq 
+onlar oxuna bilmez,
+latest olanda consumer kecmisdeki mesajlara baxmir
+
+----------
+
+Sual 12
+Producer acks=0 ile mesaj gonderir. Bu ne demekdir?
+  - Ne zaman bu meqbul secimdir?
+  - Ne zaman qebul edilmezdir?
+Real heyattan bir numune ver her iki halda.
+
+Cavab:
+
+acks=0 olduqda producer brokerdan hec bir tesdiq mesaji gozlemir,
+datanin 100% deqiqliyi vacib olmadiqda istifade oluna biler, 
+meselen google maps-da gps siqnallari
+
+amma eger tek bir mesajin itmesi bele problem yaradacaqsa acks=0 istifade olunmamalidir,
+meselen bank kocurmeleri
+
+
+
+=== DATA MODELING ===
+
+Sual 13
+Shirket satis melumatlarini analiz etmek isteyir.
+Sen Star Schema mi, Snowflake Schema mi sechersen?
+
+Ashadaki cedveli doldur ve qerarini esaslandir:
+
++------------------+-------------+------------------+
+|                  | Star Schema | Snowflake Schema |
++------------------+-------------+------------------+
+| Ustunluk         |             |                  |
++------------------+-------------+------------------+
+| Chatishmazliq    |             |                  |
++------------------+-------------+------------------+
+
+Ne zaman birini digerine ustun tutarsan?
+
+Cavab:
+
+satis melumatlarinin analizi ucun star schema secerdim, cunki sade sorgular yazmaq ve suretli etice almaq vacibdir
+
+star schema(ustunluk) - sorgular cox suretli isleyir, join azdir, sadedir
+(catismazliq) - data denormalization oldugu ucun verilenler tekrarlanir ve bazada daha cox yer tutur
+
+snowflake schema(ustunluk) - data normalization oldugu ucun az yer tutur, datanin tamligi daha yuksekdir
+catismazliq - sorgular yavas isleyir, murekkeb joinler lazim olur, struktur cetindir
+
+----------
+
+Sual 14
+Ashadaki cedvel verilir:
+
+order_id | customer_name | customer_city | product_name | product_price | quantity
+---------|---------------|---------------|--------------|---------------|--------
+1001     | Anar          | Baki          | Laptop       | 1200          | 1
+1002     | Anar          | Baki          | Mouse        | 25            | 2
+
+  - Bu cedvelde hansi normallashdirma problemi var?
+  - 3NF-e uygun hala getir - netice cedvellerini sxem sheklinde yaz.
+  - Bu deyishiklik sorgu yazmagi cetinleshdirirmi? Niye etsek de buna deyer?
+
+Cavab:
+
+cedvelde tekrarlanma problemi var, bu cedveli 3 ayri cedvele bole bilerik
+------------------------------------------------------------
+Customers---
+
+customer_id (PK) | customer_name | customer_city
+-----------------+---------------+--------------
+1                | Anar          | Baki
+
+
+Products ----
+
+product_id (PK) | product_name | product_price
+----------------+--------------+--------------
+101             | Laptop       | 1200
+102             | Mouse        | 25
+
+
+Orders ----
+
+order_id (PK) | customer_id (FK) | product_id (FK) | quantity
+--------------+------------------+-----------------+----------
+1001          | 1                | 101             | 1
+1002          | 1                | 102             | 2
+
+
+bu cedvellerde sorgu yazmaq cetinlesecek, joinlerden istifade etmeli olacayiq amma, data tamligi qorunur
+==============================
+
+Bal: _____ / 100
